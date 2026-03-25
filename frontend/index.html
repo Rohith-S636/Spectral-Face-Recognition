@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Spectral Face Recognition</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ── Header ──────────────────────────────────────────────────── -->
+  <header>
+    <div class="header-inner">
+      <div class="logo">
+        <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+          <circle cx="14" cy="14" r="13" stroke="#6C63FF" stroke-width="1.5"/>
+          <circle cx="14" cy="11" r="4.5" stroke="#6C63FF" stroke-width="1.5"/>
+          <path d="M5 23c1.5-4 4.5-6 9-6s7.5 2 9 6" stroke="#6C63FF" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <span>Spectral Face Recognition</span>
+      </div>
+      <div id="status-dot" class="status-dot offline" title="API status"></div>
+    </div>
+  </header>
+
+  <!-- ── Main ────────────────────────────────────────────────────── -->
+  <main>
+
+    <!-- Tab bar -->
+    <div class="tab-bar">
+      <button class="tab active" data-tab="register">Register</button>
+      <button class="tab" data-tab="verify">Verify</button>
+    </div>
+
+    <!-- ══════════════ REGISTER PANEL ══════════════ -->
+    <section id="tab-register" class="panel active">
+      <div class="card">
+        <h2>Register a new face</h2>
+        <p class="hint">Upload a clear, front-facing photo. The system will learn your facial signature.</p>
+
+        <!-- Upload area -->
+        <div class="upload-area" id="reg-drop">
+          <input type="file" id="reg-file" accept="image/*" hidden />
+          <div class="upload-placeholder" id="reg-placeholder">
+            <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+              <rect x="1" y="1" width="38" height="38" rx="8" stroke="currentColor" stroke-width="1.2" stroke-dasharray="4 3"/>
+              <path d="M20 13v10M15 18l5-5 5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M13 28h14" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity=".5"/>
+            </svg>
+            <span>Click or drag an image here</span>
+          </div>
+          <img id="reg-preview" class="preview hidden" alt="Preview" />
+        </div>
+
+        <!-- Name input -->
+        <div class="field">
+          <label for="reg-name">Full name</label>
+          <input type="text" id="reg-name" placeholder="e.g. Alice Johnson" autocomplete="off" />
+        </div>
+
+        <button class="btn-primary" id="reg-btn" disabled>Register face</button>
+        <div id="reg-result" class="result-area hidden"></div>
+      </div>
+
+      <!-- Registered users list -->
+      <div class="card" id="users-card">
+        <div class="users-header">
+          <h2>Registered users</h2>
+          <button class="btn-ghost" id="refresh-users">↺ Refresh</button>
+        </div>
+        <div id="users-list">
+          <p class="empty-hint">No users registered yet.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════ VERIFY PANEL ══════════════ -->
+    <section id="tab-verify" class="panel hidden">
+      <div class="card">
+        <h2>Verify identity</h2>
+        <p class="hint">Upload a face photo. The system will check if it matches any registered user.</p>
+
+        <div class="upload-area" id="ver-drop">
+          <input type="file" id="ver-file" accept="image/*" hidden />
+          <div class="upload-placeholder" id="ver-placeholder">
+            <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+              <rect x="1" y="1" width="38" height="38" rx="8" stroke="currentColor" stroke-width="1.2" stroke-dasharray="4 3"/>
+              <path d="M20 13v10M15 18l5-5 5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M13 28h14" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity=".5"/>
+            </svg>
+            <span>Click or drag an image here</span>
+          </div>
+          <img id="ver-preview" class="preview hidden" alt="Preview" />
+        </div>
+
+        <button class="btn-primary" id="ver-btn" disabled>Check identity</button>
+        <div id="ver-result" class="result-area hidden"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
