@@ -4,102 +4,873 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Spectral Face Recognition</title>
-  <link rel="stylesheet" href="style.css" />
+  <style>
+    /* ──────────────────────── CSS RESET & VARIABLES ──────────────────────── */
+    :root {
+      --bg-color: #0d0f1a;
+      --card-bg: rgba(255, 255, 255, 0.03);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --accent: #6C63FF;
+      --accent-hover: #574BFF;
+      --text-main: #f0f0f5;
+      --text-muted: #9ba0bc;
+      --error: #ff4d4f;
+      --success: #00e676;
+      --glass-blur: 16px;
+      --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+      background-image: 
+        radial-gradient(circle at 15% 50%, rgba(108, 99, 255, 0.15) 0%, transparent 50%),
+        radial-gradient(circle at 85% 30%, rgba(108, 99, 255, 0.1) 0%, transparent 50%);
+    }
+
+    /* ──────────────────────── GLASSMORPHISM & COMPONENTS ──────────────────────── */
+    .glass-panel {
+      background: var(--card-bg);
+      backdrop-filter: blur(var(--glass-blur));
+      -webkit-backdrop-filter: blur(var(--glass-blur));
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    }
+
+    /* ──────────────────────── LIVE STATS & HEADER ──────────────────────── */
+    header {
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      border-bottom: 1px solid var(--card-border);
+      background: rgba(13, 15, 26, 0.8);
+      backdrop-filter: blur(8px);
+    }
+
+    .brand { display: flex; align-items: center; gap: 0.75rem; font-weight: 600; font-size: 1.25rem; }
+    
+    .stats-dashboard {
+      display: flex;
+      gap: 1.5rem;
+      font-size: 0.875rem;
+    }
+    .stat-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(255,255,255,0.05);
+      padding: 0.4rem 1rem;
+      border-radius: 20px;
+    }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--error); }
+    .status-dot.active { background: var(--success); box-shadow: 0 0 8px var(--success); }
+    
+    .counter { font-weight: bold; color: var(--accent); }
+    .counter.tick { animation: pop 0.3s ease-out; }
+
+    @keyframes pop { 50% { transform: scale(1.3); } }
+
+    /* ──────────────────────── MAIN LAYOUT ──────────────────────── */
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem;
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 2rem;
+      background: rgba(0,0,0,0.2);
+      padding: 0.5rem;
+      border-radius: 12px;
+    }
+    .tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 0.5rem 1.5rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: var(--transition);
+      font-size: 1rem;
+    }
+    .tab-btn:hover { color: var(--text-main); }
+    .tab-btn.active {
+      background: var(--accent);
+      color: white;
+      box-shadow: 0 4px 12px rgba(108, 99, 255, 0.4);
+    }
+
+    /* Panels */
+    .panel { display: none; width: 100%; max-width: 600px; animation: fadeIn 0.4s ease; }
+    .panel.active { display: block; }
+    
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Forms & Inputs */
+    .input-grp { margin-bottom: 1.5rem; }
+    .input-grp label { display: block; margin-bottom: 0.5rem; font-size: 0.875rem; color: var(--text-muted); }
+    input[type="text"] {
+      width: 100%;
+      padding: 0.8rem 1rem;
+      background: rgba(0,0,0,0.2);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      color: white;
+      font-family: inherit;
+      transition: border-color 0.2s;
+    }
+    input[type="text"]:focus { outline: none; border-color: var(--accent); }
+    
+    .btn {
+      width: 100%;
+      padding: 1rem;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+      font-size: 1rem;
+    }
+    .btn:hover:not(:disabled) { background: var(--accent-hover); transform: translateY(-2px); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-secondary { background: rgba(255,255,255,0.1); }
+    .btn-secondary:hover:not(:disabled) { background: rgba(255,255,255,0.15); }
+    .btn-danger { background: rgba(255, 77, 79, 0.1); color: var(--error); border: 1px solid rgba(255, 77, 79, 0.3); padding: 0.4rem 0.8rem; border-radius: 6px; font-size: 0.8rem; }
+    .btn-danger:hover { background: rgba(255, 77, 79, 0.2); }
+
+    /* ──────────────────────── MEDIA INPUT (CAMERA/UPLOAD) ──────────────────────── */
+    .media-toggle {
+      display: flex; justify-content: flex-end; margin-bottom: 0.5rem;
+    }
+    .toggle-lbl { color: var(--accent); font-size: 0.875rem; cursor: pointer; }
+
+    .media-box {
+      width: 100%;
+      aspect-ratio: 4/3;
+      background: rgba(0,0,0,0.3);
+      border: 2px dashed var(--card-border);
+      border-radius: 12px;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      transition: var(--transition);
+    }
+    .media-box:hover { border-color: rgba(255,255,255,0.2); }
+
+    /* Upload Fallback */
+    .upload-ui { text-align: center; color: var(--text-muted); cursor: pointer; padding: 2rem; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+    input[type="file"] { display: none; }
+    
+    /* Camera UI */
+    .video-el, .preview-img { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; display: none; }
+    .video-active .video-el, .preview-active .preview-img { display: block; }
+    .video-active .upload-ui, .preview-active .upload-ui { display: none; }
+
+    .camera-ctrls {
+      position: absolute; bottom: 1rem; left: 0; width: 100%;
+      display: flex; justify-content: center; z-index: 10; display: none;
+    }
+    .video-active .camera-ctrls { display: flex; }
+    
+    .capture-btn {
+      width: 60px; height: 60px; border-radius: 50%;
+      background: transparent; border: 3px solid white;
+      cursor: pointer; position: relative; transition: transform 0.2s;
+    }
+    .capture-btn::after {
+      content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      width: 48px; height: 48px; background: rgba(255,255,255,0.8); border-radius: 50%; transition: var(--transition);
+    }
+    .capture-btn:hover { transform: scale(1.05); }
+    .capture-btn:active::after { width: 44px; height: 44px; }
+
+    .countdown-overlay {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center;
+      font-size: 5rem; font-weight: bold; color: white; z-index: 20; display: none;
+    }
+
+    /* Retake btn */
+    .retake-btn {
+      position: absolute; top: 1rem; right: 1rem;
+      background: rgba(0,0,0,0.6); border: none; color: white; padding: 0.5rem 1rem;
+      border-radius: 20px; cursor: pointer; z-index: 10; display: none; font-size: 0.8rem;
+    }
+    .preview-active .retake-btn { display: block; }
+
+    /* Face Warning */
+    .face-warning {
+      position: absolute; top: 0; left: 0; width: 100%; padding: 0.5rem;
+      background: rgba(255, 170, 0, 0.9); color: black; font-weight: bold; text-align: center;
+      font-size: 0.875rem; transform: translateY(-100%); transition: transform 0.3s; z-index: 15;
+    }
+    .face-warning.show { transform: translateY(0); }
+
+    /* ──────────────────────── ANIMATIONS (VERIFY RESULT) ──────────────────────── */
+    .result-overlay {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(13, 15, 26, 0.85); backdrop-filter: blur(4px);
+      display: flex; flex-direction: column; justify-content: center; align-items: center;
+      z-index: 30; opacity: 0; pointer-events: none; transition: opacity 0.4s;
+    }
+    .result-overlay.show { opacity: 1; pointer-events: all; }
+    
+    /* Scanline */
+    .scanline {
+      position: absolute; top: 0; left: 0; width: 100%; height: 4px;
+      background: var(--accent); box-shadow: 0 0 10px var(--accent), 0 0 20px var(--accent);
+      opacity: 0; z-index: 25; pointer-events: none;
+    }
+    .scanning .scanline { animation: scan 2s linear infinite; opacity: 1; }
+    @keyframes scan { 0% { top: 0; } 50% { top: 100%; } 100% { top: 0; } }
+
+    /* Identity Reveal */
+    .reveal-card {
+      text-align: center; transform: translateY(20px); opacity: 0; transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    .result-overlay.show .reveal-card { transform: translateY(0); opacity: 1; }
+    
+    .match-name { font-size: 2rem; font-weight: bold; margin-bottom: 0.5rem; text-shadow: 0 2px 10px rgba(0,0,0,0.5); }
+    .match-confidence { color: var(--text-muted); margin-bottom: 1.5rem; }
+
+    /* SVG Confidence Ring */
+    .conf-ring-wrapper { position: relative; width: 120px; height: 120px; margin: 0 auto 1rem; }
+    .conf-ring { transform: rotate(-90deg); transform-origin: 50% 50%; }
+    .conf-ring-bg { fill: none; stroke: rgba(255,255,255,0.1); stroke-width: 8; }
+    .conf-ring-fill { fill: none; stroke: var(--accent); stroke-width: 8; stroke-linecap: round; stroke-dasharray: 314; stroke-dashoffset: 314; transition: stroke-dashoffset 1s ease-out; }
+    .conf-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 1.5rem; font-weight: bold; }
+    
+    /* Success / Fail states */
+    .result-overlay[data-status="success"] .match-name { color: var(--success); }
+    .result-overlay[data-status="success"] .conf-ring-fill { stroke: var(--success); }
+    
+    .result-overlay[data-status="denied"] .match-name { color: var(--error); font-size: 2.5rem; letter-spacing: 2px; }
+    .result-overlay[data-status="denied"] .conf-ring-wrapper { display: none; }
+    .result-overlay[data-status="denied"] { background: rgba(255, 0, 0, 0.15); }
+    .result-overlay[data-status="denied"] .reveal-card { animation: shake 0.5s; }
+    
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-10px); }
+      40%, 80% { transform: translateX(10px); }
+    }
+
+    /* ──────────────────────── USERS LIST ──────────────────────── */
+    .user-list { list-style: none; margin-top: 1rem; max-height: 400px; overflow-y: auto; }
+    .user-list::-webkit-scrollbar { width: 6px; }
+    .user-list::-webkit-scrollbar-track { background: transparent; }
+    .user-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
+    
+    .user-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 1rem; border-bottom: 1px solid var(--card-border);
+    }
+    .user-item:last-child { border-bottom: none; }
+
+    /* ──────────────────────── ONBOARDING ──────────────────────── */
+    .onboarding {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: var(--bg-color); z-index: 1000;
+      display: flex; flex-direction: column; justify-content: center; align-items: center;
+      text-align: center; padding: 2rem; transition: opacity 0.5s;
+    }
+    .onboarding.hidden { opacity: 0; pointer-events: none; }
+    .onboarding h1 { font-size: 2.5rem; margin-bottom: 1rem; color: var(--accent); }
+    .onboarding p { font-size: 1.2rem; color: var(--text-muted); max-width: 600px; margin-bottom: 3rem; }
+    .steps { display: flex; gap: 2rem; margin-bottom: 3rem; flex-wrap: wrap; justify-content: center; }
+    .step {
+      background: rgba(255,255,255,0.05); padding: 2rem; border-radius: 16px; width: 250px;
+      border: 1px solid var(--card-border); position: relative;
+    }
+    .step-num {
+      position: absolute; top: -20px; left: 50%; transform: translateX(-50%);
+      width: 40px; height: 40px; background: var(--accent); border-radius: 50%;
+      display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: 1.2rem;
+    }
+    .step h3 { margin-top: 1rem; margin-bottom: 0.5rem; }
+
+  </style>
 </head>
 <body>
 
-  <!-- ── Header ──────────────────────────────────────────────────── -->
-  <header>
-    <div class="header-inner">
-      <div class="logo">
-        <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-          <circle cx="14" cy="14" r="13" stroke="#6C63FF" stroke-width="1.5"/>
-          <circle cx="14" cy="11" r="4.5" stroke="#6C63FF" stroke-width="1.5"/>
-          <path d="M5 23c1.5-4 4.5-6 9-6s7.5 2 9 6" stroke="#6C63FF" stroke-width="1.5" stroke-linecap="round"/>
-        </svg>
-        <span>Spectral Face Recognition</span>
+  <!-- Full Screen Onboarding -->
+  <div id="onboarding" class="onboarding">
+    <h1>Welcome to Spectral</h1>
+    <p>A next-generation facial recognition system. It looks like you don't have any users registered yet.</p>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <h3>Register</h3>
+        <p class="text-xs text-muted">Add at least one user by taking a photo or uploading an image.</p>
       </div>
-      <div id="status-dot" class="status-dot offline" title="API status"></div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <h3>Verify</h3>
+        <p class="text-xs text-muted">Switch to the Verify tab to test the recognition engine.</p>
+      </div>
+    </div>
+    <button class="btn" style="max-width: 300px;" onclick="dismissOnboarding()">Get Started</button>
+  </div>
+
+  <!-- Header & Live Stats -->
+  <header>
+    <div class="brand">
+      <svg width="24" height="24" viewBox="0 0 28 28" fill="none">
+        <circle cx="14" cy="14" r="13" stroke="var(--accent)" stroke-width="1.5"/>
+        <circle cx="14" cy="11" r="4.5" stroke="var(--accent)" stroke-width="1.5"/>
+        <path d="M5 23c1.5-4 4.5-6 9-6s7.5 2 9 6" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+      Spectral AI
+    </div>
+    <div class="stats-dashboard">
+      <div class="stat-item">
+        <span id="api-status" class="status-dot tooltip"></span> API
+      </div>
+      <div class="stat-item">
+        Model: <span id="model-status" style="color:var(--text-muted)">Checking...</span>
+      </div>
+      <div class="stat-item">
+        Users: <span id="user-count" class="counter">0</span>
+      </div>
     </div>
   </header>
 
-  <!-- ── Main ────────────────────────────────────────────────────── -->
   <main>
-
-    <!-- Tab bar -->
-    <div class="tab-bar">
-      <button class="tab active" data-tab="register">Register</button>
-      <button class="tab" data-tab="verify">Verify</button>
+    <!-- Tabs -->
+    <div class="tabs glass-panel">
+      <button class="tab-btn active" onclick="switchTab('register')">Register</button>
+      <button class="tab-btn" onclick="switchTab('verify')">Verify</button>
+      <button class="tab-btn" onclick="switchTab('users')">Users</button>
     </div>
 
-    <!-- ══════════════ REGISTER PANEL ══════════════ -->
-    <section id="tab-register" class="panel active">
-      <div class="card">
-        <h2>Register a new face</h2>
-        <p class="hint">Upload a clear, front-facing photo. The system will learn your facial signature.</p>
+    <!-- ──────────────── REGISTER PANEL ──────────────── -->
+    <div id="panel-register" class="panel active glass-panel" style="padding: 2rem;">
+      <h2 style="margin-bottom: 0.5rem;">Register Face</h2>
+      <p style="color: var(--text-muted); margin-bottom: 1.5rem; font-size: 0.9rem;">Add a new identity to the system.</p>
 
-        <!-- Upload area -->
-        <div class="upload-area" id="reg-drop">
-          <input type="file" id="reg-file" accept="image/*" hidden />
-          <div class="upload-placeholder" id="reg-placeholder">
-            <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
-              <rect x="1" y="1" width="38" height="38" rx="8" stroke="currentColor" stroke-width="1.2" stroke-dasharray="4 3"/>
-              <path d="M20 13v10M15 18l5-5 5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M13 28h14" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity=".5"/>
-            </svg>
-            <span>Click or drag an image here</span>
+      <div class="media-toggle">
+        <span class="toggle-lbl" onclick="toggleMediaMode('reg')">📸 Toggle Camera</span>
+      </div>
+
+      <!-- Media Input Component -->
+      <div id="reg-media-box" class="media-box" ondrop="dropHandler(event, 'reg')" ondragover="dragOverHandler(event)">
+        <!-- Fallback Upload -->
+        <label class="upload-ui" for="reg-file">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-bottom: 1rem; opacity: 0.7;">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="17 8 12 3 7 8"></polyline>
+            <line x1="12" y1="3" x2="12" y2="15"></line>
+          </svg>
+          <span id="reg-upload-text">Click or drag photo here</span>
+        </label>
+        <input type="file" id="reg-file" accept="image/*" onchange="handleFileSelect(event, 'reg')" />
+        
+        <!-- Video Feed -->
+        <video id="reg-video" class="video-el" autoplay playsinline></video>
+        
+        <!-- Image Preview -->
+        <img id="reg-preview" class="preview-img" />
+        
+        <!-- Camera Controls -->
+        <div class="camera-ctrls">
+          <button class="capture-btn" onclick="capturePhoto('reg')"></button>
+        </div>
+        
+        <!-- Countdown -->
+        <div id="reg-countdown" class="countdown-overlay">3</div>
+        
+        <!-- Controls & Warnings -->
+        <button class="retake-btn" onclick="resetMedia('reg')">Retake / Reselect</button>
+        <div id="reg-warning" class="face-warning">⚠ No face detected — accuracy may be lower.</div>
+      </div>
+
+      <div class="input-grp">
+        <label for="reg-name">Subject Name</label>
+        <input type="text" id="reg-name" placeholder="e.g. Jane Doe" autocomplete="off" />
+      </div>
+
+      <button id="reg-submit" class="btn" onclick="submitRegister()" disabled>Register Identity</button>
+      <div id="reg-msg" style="margin-top: 1rem; text-align: center; font-size: 0.9rem; min-height: 1.2em;"></div>
+    </div>
+
+    <!-- ──────────────── VERIFY PANEL ──────────────── -->
+    <div id="panel-verify" class="panel glass-panel" style="padding: 2rem;">
+      <h2 style="margin-bottom: 0.5rem;">Verify Identity</h2>
+      <p style="color: var(--text-muted); margin-bottom: 1.5rem; font-size: 0.9rem;">Check a face against registered users.</p>
+
+      <div class="media-toggle">
+        <span class="toggle-lbl" onclick="toggleMediaMode('ver')">📸 Toggle Camera</span>
+      </div>
+
+      <div id="ver-media-box" class="media-box" ondrop="dropHandler(event, 'ver')" ondragover="dragOverHandler(event)">
+        <!-- Scanline Animation Layer -->
+        <div class="scanline"></div>
+
+        <!-- Result Overlay -->
+        <div id="ver-overlay" class="result-overlay">
+          <div class="reveal-card">
+            <div class="conf-ring-wrapper">
+              <svg class="conf-ring" width="120" height="120">
+                <circle class="conf-ring-bg" cx="60" cy="60" r="50"></circle>
+                <circle id="ver-ring-fill" class="conf-ring-fill" cx="60" cy="60" r="50"></circle>
+              </svg>
+              <div id="ver-conf-text" class="conf-text">98%</div>
+            </div>
+            <div id="ver-match-name" class="match-name">Doe</div>
+            <div id="ver-match-sub" class="match-confidence">High Confidence</div>
+            <button class="btn btn-secondary" style="margin-top: 1rem; padding: 0.5rem 1rem;" onclick="resetVerification()">Verify Another</button>
           </div>
-          <img id="reg-preview" class="preview hidden" alt="Preview" />
         </div>
 
-        <!-- Name input -->
-        <div class="field">
-          <label for="reg-name">Full name</label>
-          <input type="text" id="reg-name" placeholder="e.g. Alice Johnson" autocomplete="off" />
+        <!-- Fallback Upload -->
+        <label class="upload-ui" for="ver-file">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-bottom: 1rem; opacity: 0.7;">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="17 8 12 3 7 8"></polyline>
+            <line x1="12" y1="3" x2="12" y2="15"></line>
+          </svg>
+          <span id="ver-upload-text">Click or drag photo here</span>
+        </label>
+        <input type="file" id="ver-file" accept="image/*" onchange="handleFileSelect(event, 'ver')" />
+        
+        <!-- Video Feed -->
+        <video id="ver-video" class="video-el" autoplay playsinline></video>
+        
+        <!-- Image Preview -->
+        <img id="ver-preview" class="preview-img" />
+        
+        <!-- Camera Controls -->
+        <div class="camera-ctrls">
+          <button class="capture-btn" onclick="capturePhoto('ver')"></button>
         </div>
-
-        <button class="btn-primary" id="reg-btn" disabled>Register face</button>
-        <div id="reg-result" class="result-area hidden"></div>
+        
+        <div id="ver-countdown" class="countdown-overlay">3</div>
+        <button id="ver-retake" class="retake-btn" onclick="resetMedia('ver')">Retake / Reselect</button>
+        <div id="ver-warning" class="face-warning">⚠ No face detected.</div>
       </div>
 
-      <!-- Registered users list -->
-      <div class="card" id="users-card">
-        <div class="users-header">
-          <h2>Registered users</h2>
-          <button class="btn-ghost" id="refresh-users">↺ Refresh</button>
-        </div>
-        <div id="users-list">
-          <p class="empty-hint">No users registered yet.</p>
-        </div>
+      <button id="ver-submit" class="btn" onclick="submitVerify()" disabled>Analyze Face</button>
+    </div>
+
+    <!-- ──────────────── USERS PANEL ──────────────── -->
+    <div id="panel-users" class="panel glass-panel" style="padding: 2rem;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h2>Registered Database</h2>
+        <button class="btn-secondary" style="padding: 0.4rem 0.8rem; border: none; border-radius: 6px; cursor: pointer; color: white;" onclick="fetchUsers()">↺ Refresh</button>
       </div>
-    </section>
-
-    <!-- ══════════════ VERIFY PANEL ══════════════ -->
-    <section id="tab-verify" class="panel hidden">
-      <div class="card">
-        <h2>Verify identity</h2>
-        <p class="hint">Upload a face photo. The system will check if it matches any registered user.</p>
-
-        <div class="upload-area" id="ver-drop">
-          <input type="file" id="ver-file" accept="image/*" hidden />
-          <div class="upload-placeholder" id="ver-placeholder">
-            <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
-              <rect x="1" y="1" width="38" height="38" rx="8" stroke="currentColor" stroke-width="1.2" stroke-dasharray="4 3"/>
-              <path d="M20 13v10M15 18l5-5 5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M13 28h14" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity=".5"/>
-            </svg>
-            <span>Click or drag an image here</span>
-          </div>
-          <img id="ver-preview" class="preview hidden" alt="Preview" />
-        </div>
-
-        <button class="btn-primary" id="ver-btn" disabled>Check identity</button>
-        <div id="ver-result" class="result-area hidden"></div>
+      <ul id="users-list-ul" class="user-list">
+        <!-- JS populated -->
+      </ul>
+      <div id="users-empty" style="text-align: center; color: var(--text-muted); padding: 2rem; display: none;">
+        No identities registered yet.
       </div>
-    </section>
-
+    </div>
   </main>
 
-  <script src="app.js"></script>
+  <!-- Hidden canvas for image processing -->
+  <canvas id="canvas" style="display: none;"></canvas>
+
+  <script>
+    /* ──────────────────────── CONFIG & STATE ──────────────────────── */
+    const API_URL = 'http://localhost:8000';
+    let currentStream = null;
+    let state = {
+      regFile: null, // File or Blob
+      verFile: null,
+      userCount: -1
+    };
+
+    /* ──────────────────────── INITIALIZATION ──────────────────────── */
+    window.addEventListener('DOMContentLoaded', () => {
+      checkHealth();
+      fetchUsers();
+      // Setup input listener to enable/disable reg button
+      document.getElementById('reg-name').addEventListener('input', updateRegButton);
+      
+      // Periodically check health
+      setInterval(checkHealth, 5000);
+    });
+
+    /* ──────────────────────── UI LOGIC ──────────────────────── */
+    function switchTab(tabId) {
+      // Cleanup camera if active
+      stopCamera();
+      
+      // Update buttons
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      event.target.classList.add('active');
+      
+      // Update panels
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      document.getElementById(`panel-${tabId}`).classList.add('active');
+
+      if(tabId === 'users') fetchUsers();
+      
+      // Reset modes on switch
+      if(tabId === 'register') resetMedia('reg');
+      if(tabId === 'verify') resetVerification();
+    }
+
+    function dismissOnboarding() {
+      document.getElementById('onboarding').style.opacity = '0';
+      setTimeout(() => {
+        document.getElementById('onboarding').style.display = 'none';
+      }, 500);
+    }
+
+    function animateCounter(newCount) {
+      const el = document.getElementById('user-count');
+      if(state.userCount !== -1 && newCount > state.userCount) {
+        el.classList.remove('tick');
+        void el.offsetWidth; // trigger reflow
+        el.classList.add('tick');
+      }
+      el.textContent = newCount;
+      state.userCount = newCount;
+
+      // Handle onboarding logic
+      if(newCount === 0) {
+        document.getElementById('onboarding').classList.remove('hidden');
+      } else {
+        document.getElementById('onboarding').classList.add('hidden');
+      }
+    }
+
+    /* ──────────────────────── MEDIA HANDLING (CAMERA / UPLOAD) ──────────────────────── */
+    async function toggleMediaMode(prefix) {
+      const box = document.getElementById(`${prefix}-media-box`);
+      
+      if (box.classList.contains('video-active')) {
+        // Switch to upload
+        stopCamera();
+        box.classList.remove('video-active');
+        resetMedia(prefix);
+      } else {
+        // Switch to camera
+        resetMedia(prefix);
+        try {
+          currentStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+          const videoEl = document.getElementById(`${prefix}-video`);
+          videoEl.srcObject = currentStream;
+          box.classList.add('video-active');
+        } catch (err) {
+          alert('Could not access camera. Please allow permissions or use upload.');
+        }
+      }
+    }
+
+    function stopCamera() {
+      if(currentStream) {
+        currentStream.getTracks().forEach(track => track.stop());
+        currentStream = null;
+      }
+      document.querySelectorAll('.media-box').forEach(b => b.classList.remove('video-active'));
+    }
+
+    // Drag & Drop
+    function dragOverHandler(ev) { ev.preventDefault(); }
+    function dropHandler(ev, prefix) {
+      ev.preventDefault();
+      if (ev.dataTransfer.items && ev.dataTransfer.items[0].kind === 'file') {
+        const file = ev.dataTransfer.items[0].getAsFile();
+        processSelectedFile(file, prefix);
+      }
+    }
+    function handleFileSelect(ev, prefix) {
+      if(ev.target.files && ev.target.files[0]) {
+        processSelectedFile(ev.target.files[0], prefix);
+      }
+    }
+
+    function processSelectedFile(file, prefix) {
+      if(!file.type.startsWith('image/')) return;
+      
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setPreview(e.target.result, file, prefix);
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function capturePhoto(prefix) {
+      const video = document.getElementById(`${prefix}-video`);
+      const countdownEl = document.getElementById(`${prefix}-countdown`);
+      
+      let count = 3;
+      countdownEl.style.display = 'flex';
+      countdownEl.innerText = count;
+
+      const interval = setInterval(() => {
+        count--;
+        if(count > 0) {
+          countdownEl.innerText = count;
+        } else {
+          clearInterval(interval);
+          countdownEl.style.display = 'none';
+          
+          // Draw to canvas
+          const canvas = document.getElementById('canvas');
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          canvas.getContext('2d').drawImage(video, 0, 0);
+          
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+          
+          // Convert to blob
+          canvas.toBlob((blob) => {
+            const file = new File([blob], "capture.jpg", { type: "image/jpeg" });
+            stopCamera();
+            setPreview(dataUrl, file, prefix);
+          }, 'image/jpeg', 0.9);
+        }
+      }, 1000);
+    }
+
+    function setPreview(dataUrl, fileObj, prefix) {
+      const box = document.getElementById(`${prefix}-media-box`);
+      const img = document.getElementById(`${prefix}-preview`);
+      
+      img.src = dataUrl;
+      box.classList.remove('video-active');
+      box.classList.add('preview-active');
+      
+      // Save state
+      if(prefix === 'reg') {
+        state.regFile = fileObj;
+        updateRegButton();
+      } else {
+        state.verFile = fileObj;
+        document.getElementById('ver-submit').disabled = false;
+      }
+      hideWarning(prefix);
+    }
+
+    function resetMedia(prefix) {
+      const box = document.getElementById(`${prefix}-media-box`);
+      box.classList.remove('preview-active');
+      box.classList.remove('video-active');
+      document.getElementById(`${prefix}-file`).value = '';
+      hideWarning(prefix);
+      
+      if(prefix === 'reg') {
+        state.regFile = null;
+        updateRegButton();
+        document.getElementById('reg-msg').innerText = '';
+      } else {
+        state.verFile = null;
+        document.getElementById('ver-submit').disabled = true;
+      }
+    }
+
+    function showWarning(prefix, message) {
+      const w = document.getElementById(`${prefix}-warning`);
+      w.innerText = message;
+      w.classList.add('show');
+    }
+    function hideWarning(prefix) {
+      document.getElementById(`${prefix}-warning`).classList.remove('show');
+    }
+
+    function updateRegButton() {
+      const name = document.getElementById('reg-name').value.trim();
+      document.getElementById('reg-submit').disabled = !(name.length > 0 && state.regFile);
+    }
+
+    /* ──────────────────────── API CALLS ──────────────────────── */
+    async function checkHealth() {
+      try {
+        const res = await fetch(`${API_URL}/health`);
+        const data = await res.json();
+        
+        const dot = document.getElementById('api-status');
+        if(data.status === 'ok') dot.classList.add('active');
+        else dot.classList.remove('active');
+        
+        document.getElementById('model-status').innerText = data.model_ready ? 'Trained' : 'Need Data';
+        document.getElementById('model-status').style.color = data.model_ready ? 'var(--success)' : 'var(--text-muted)';
+        
+        animateCounter(data.users);
+      } catch (e) {
+        document.getElementById('api-status').classList.remove('active');
+        document.getElementById('model-status').innerText = 'Offline';
+      }
+    }
+
+    async function submitRegister() {
+      const btn = document.getElementById('reg-submit');
+      const msg = document.getElementById('reg-msg');
+      const name = document.getElementById('reg-name').value.trim();
+      
+      btn.disabled = true;
+      btn.innerText = 'Registering...';
+      msg.innerText = '';
+      msg.style.color = 'var(--text-main)';
+
+      const fd = new FormData();
+      fd.append('name', name);
+      fd.append('image', state.regFile);
+
+      try {
+        const res = await fetch(`${API_URL}/register`, { method: 'POST', body: fd });
+        const data = await res.json();
+        
+        if(!res.ok) throw new Error(data.detail || 'Registration failed');
+
+        if(data.face_detected !== undefined && !data.face_detected) {
+          showWarning('reg', '⚠ No face detected — try again for better accuracy.');
+        }
+
+        msg.style.color = 'var(--success)';
+        msg.innerText = `✔ ${data.message}`;
+        document.getElementById('reg-name').value = '';
+        checkHealth(); // update counts
+      } catch (e) {
+        msg.style.color = 'var(--error)';
+        msg.innerText = `✖ ${e.message}`;
+      } finally {
+        btn.innerText = 'Register Identity';
+        updateRegButton();
+      }
+    }
+
+    function resetVerification() {
+      const overlay = document.getElementById('ver-overlay');
+      overlay.classList.remove('show');
+      overlay.removeAttribute('data-status');
+      document.getElementById('ver-media-box').classList.remove('scanning');
+      document.getElementById('ver-ring-fill').style.strokeDashoffset = 314; // Reset ring
+      resetMedia('ver');
+    }
+
+    async function submitVerify() {
+      const btn = document.getElementById('ver-submit');
+      const box = document.getElementById('ver-media-box');
+      const overlay = document.getElementById('ver-overlay');
+      
+      btn.disabled = true;
+      btn.innerText = 'Analyzing...';
+      box.classList.add('scanning'); // Start scanline animation
+      hideWarning('ver');
+
+      const fd = new FormData();
+      fd.append('image', state.verFile);
+
+      try {
+        const res = await fetch(`${API_URL}/verify`, { method: 'POST', body: fd });
+        const data = await res.json();
+        
+        // Stop scanline, prep reveal
+        box.classList.remove('scanning');
+        
+        if(!res.ok) throw new Error(data.detail || 'API Error');
+
+        if(data.face_detected !== undefined && !data.face_detected) {
+          showWarning('ver', '⚠ No face detected in uploaded image.');
+        }
+
+        overlay.classList.add('show');
+
+        if(data.match) {
+          // Success Reveal
+          overlay.setAttribute('data-status', 'success');
+          document.getElementById('ver-match-name').innerText = data.name;
+          
+          const confPercent = Math.round(data.confidence * 100);
+          document.getElementById('ver-match-sub').innerText = 'Identity Confirmed';
+          document.getElementById('ver-conf-text').innerText = `${confPercent}%`;
+          
+          // Animate SVG Ring (Circumference ~314 for r=50)
+          const offset = 314 - (314 * data.confidence);
+          // small delay for transition to kick in after display:block
+          setTimeout(() => {
+            document.getElementById('ver-ring-fill').style.strokeDashoffset = offset;
+          }, 50);
+
+        } else {
+          // Denied Reveal
+          overlay.setAttribute('data-status', 'denied');
+          document.getElementById('ver-match-name').innerText = 'ACCESS DENIED';
+          document.getElementById('ver-match-sub').innerText = 'No matching identity found';
+        }
+
+      } catch (e) {
+        box.classList.remove('scanning');
+        alert("Verification error: " + e.message);
+      } finally {
+        btn.innerText = 'Analyze Face';
+        btn.disabled = false;
+      }
+    }
+
+    /* ──────────────────────── USERS FETCH & DELETE ──────────────────────── */
+    async function fetchUsers() {
+      const list = document.getElementById('users-list-ul');
+      const empty = document.getElementById('users-empty');
+      
+      try {
+        const res = await fetch(`${API_URL}/users`);
+        const data = await res.json();
+        
+        list.innerHTML = '';
+        if(data.count === 0) {
+          empty.style.display = 'block';
+        } else {
+          empty.style.display = 'none';
+          data.users.forEach(name => {
+            const li = document.createElement('li');
+            li.className = 'user-item';
+            li.innerHTML = `
+              <span style="font-weight: 500;">${name}</span>
+              <button class="btn-danger" onclick="deleteUser('${name}')">Delete</button>
+            `;
+            list.appendChild(li);
+          });
+        }
+        animateCounter(data.count);
+      } catch (e) {
+        console.error("Failed to fetch users");
+      }
+    }
+
+    async function deleteUser(name) {
+      if(!confirm(`Delete user ${name}?`)) return;
+      try {
+        const res = await fetch(`${API_URL}/users/${encodeURIComponent(name)}`, { method: 'DELETE' });
+        if(res.ok) {
+          fetchUsers();
+          checkHealth();
+        }
+      } catch (e) {
+        alert('Failed to delete user');
+      }
+    }
+
+  </script>
 </body>
 </html>
